@@ -68,7 +68,7 @@ rustix = { version = "1", default-features = false, features = ["std", "time"] }
 # on the PATH.
 wgpu = { version = "30.0.1", default-features = false, features = ["dx12"] }
 
-[target.'cfg(not(target_os = "macos"))'.dependencies]
+[target.'cfg(not(any(target_os = "macos", target_os = "ios")))'.dependencies]
 # OpenGL (WGL on Windows, EGL on Linux), the last fallback, for GPUs with no Vulkan or
 # DirectX 12 driver (`graphicsApi`, graphics.rs).
 wgpu = { version = "30.0.1", default-features = false, features = ["gles"] }
@@ -101,3 +101,9 @@ workspace = true
 [dev-dependencies]
 # Every WGSL shader translated as wgpu's DirectX 12 backend does (gfx.rs tests).
 naga = { version = "30.0.1", features = ["wgsl-in", "hlsl-out", "msl-out", "spv-out"] }
+
+# Device-native iOS entry point; builds the same engine, without desktop
+# audio/controller drivers or any runtime Java/JIT dependency.
+[[bin]]
+name = "horizon-ios"
+path = "src/ios.rs"
