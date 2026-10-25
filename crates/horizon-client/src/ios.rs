@@ -1,13 +1,15 @@
 //! iOS device entry point. The same Rust game code as the desktop client is used.
 #![forbid(unsafe_code)]
-#![cfg(target_os = "ios")]
 
+#[cfg(target_os = "ios")]
 mod game;
 
+#[cfg(target_os = "ios")]
 use std::{env, fs, io, path::PathBuf};
 
 /// Store saves and user-prepared Minecraft resources in the app's Documents
 /// directory, which can be accessed using Files / Finder file sharing.
+#[cfg(target_os = "ios")]
 fn prepare_sandbox() -> io::Result<PathBuf> {
     let home = env::var_os("HOME")
         .ok_or_else(|| io::Error::other("iOS sandbox HOME is unavailable"))?;
@@ -34,6 +36,7 @@ fn prepare_sandbox() -> io::Result<PathBuf> {
     Ok(root)
 }
 
+#[cfg(target_os = "ios")]
 fn main() {
     if let Err(error) = run() {
         eprintln!("Horizon iOS failed: {error}");
@@ -41,6 +44,7 @@ fn main() {
     }
 }
 
+#[cfg(target_os = "ios")]
 fn run() -> horizon_client::Result<()> {
     let home = prepare_sandbox()?;
     horizon_client::telemetry::mark_start();
@@ -51,4 +55,9 @@ fn run() -> horizon_client::Result<()> {
     game::run()?;
     horizon_client::logging::flush();
     Ok(())
+}
+
+#[cfg(not(target_os = "ios"))]
+fn main() {
+    eprintln!("This entry point is for aarch64-apple-ios device builds only.");
 }
