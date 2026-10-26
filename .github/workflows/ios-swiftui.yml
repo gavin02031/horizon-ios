@@ -7,6 +7,7 @@ on:
       - ios/swiftui-launcher
       - ios/metal-input-foundation
       - ios/portrait-engine-integration
+      - ios/desktop-launcher-parity
 
 permissions:
   contents: read
@@ -49,15 +50,15 @@ jobs:
           test -x "$APP/Horizon"
           plutil -lint "$APP/Info.plist"
           test "$(plutil -extract CFBundleIdentifier raw -o - "$APP/Info.plist")" = "com.gavin02031.horizonios.swiftui"
-          test "$(plutil -extract HorizonBuildChannel raw -o - "$APP/Info.plist")" = "portrait-metal-test"
-          test "$(plutil -extract CFBundleShortVersionString raw -o - "$APP/Info.plist")" = "0.4.1"
+          test "$(plutil -extract HorizonBuildChannel raw -o - "$APP/Info.plist")" = "desktop-style-source-install"
+          test "$(plutil -extract CFBundleShortVersionString raw -o - "$APP/Info.plist")" = "0.5.0"
           # An explicit launch-screen configuration is required for modern
           # iPhone display sizing (and iOS 27 App Store validation).
           plutil -extract UILaunchScreen json -o - "$APP/Info.plist" >/dev/null
           test "$(plutil -extract UIRequiresFullScreen raw -o - "$APP/Info.plist")" = "true"
           test "$(xcrun lipo -archs "$APP/Horizon")" = "arm64"
           xcrun otool -L "$APP/Horizon" | grep -F "SwiftUI.framework"
-          echo "Verified Horizon iOS portrait+Metal v0.4.1"
+          echo "Verified Horizon iOS desktop-style v0.5.0"
       - name: Assemble experimental unsigned IPA
         run: |
           set -euo pipefail
@@ -65,17 +66,17 @@ jobs:
           cp -R "$RUNNER_TEMP/HorizonDerived/Build/Products/Release-iphoneos/Horizon.app" \
             "$RUNNER_TEMP/ipa/Payload/"
           cd "$RUNNER_TEMP/ipa"
-          zip -qry "$GITHUB_WORKSPACE/Horizon-Portrait-Metal-0.4.1-unsigned.ipa" Payload
+          zip -qry "$GITHUB_WORKSPACE/Horizon-Desktop-Style-0.5.0-unsigned.ipa" Payload
       - uses: actions/upload-artifact@v4
         with:
-          name: Horizon-Portrait-Metal-v0.4.1-TEST
-          path: Horizon-Portrait-Metal-0.4.1-unsigned.ipa
+          name: Horizon-Desktop-Style-v0.5.0-TEST
+          path: Horizon-Desktop-Style-0.5.0-unsigned.ipa
           if-no-files-found: error
           retention-days: 7
       - name: Mark scope honestly
         if: always()
         run: |
           echo "### SwiftUI launcher + real Rust static library" >> "$GITHUB_STEP_SUMMARY"
-          echo "The rust bridge validates Java Edition assets with Horizon's Assets::load." >> "$GITHUB_STEP_SUMMARY"
-          echo "This IPA includes a Rust Metal GPU/input diagnostic, NOT playable Minecraft terrain or survival." >> "$GITHUB_STEP_SUMMARY"
+          echo "Rust validates prepared resources; Swift downloads official pinned Mojang sources with SHA-1 checks." >> "$GITHUB_STEP_SUMMARY"
+          echo "Downloads do not run the required Java 25 exporter; full Minecraft gameplay is not yet connected." >> "$GITHUB_STEP_SUMMARY"
           echo "SwiftUI scenes replace the former winit-owned UIApplication startup." >> "$GITHUB_STEP_SUMMARY"

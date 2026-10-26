@@ -60,3 +60,34 @@ afresh and take a new screenshot. Deleting an app can delete its sandbox files.
 
 The app uses its own `com.gavin02031.horizonios.swiftui` bundle identifier,
 not the prior legacy Rust-only `com.gavin02031.horizonios` app.
+
+## Desktop visual parity + official source download (0.5.0)
+
+The app now launches `DesktopInspiredLauncherView`, using the PC launcher's
+visual structure (navigation, installation summary, sunset hero, version
+selector, Ready to Play panel, and setup actions) in a readable portrait iPhone
+layout. The SwiftUI palette uses graphite, purple/lilac and warm-orange details,
+with a pixel-step procedurally rendered skyline; it does not distribute Mojang
+artwork or copy PC images into the IPA.
+
+`MinecraftSourceInstaller` uses HTTPS to fetch the official Mojang
+`version_manifest_v2.json`, locates the Horizon-pinned 26.3 version, and checks
+the manifest SHA-1 against `research-lock.json` values before accepting it.
+It then downloads the actual Java Edition client JAR, server JAR and asset
+index into `Documents/Horizon/minecraft-source/`, verifying SHA-1 hashes.
+Source download is opt-in behind the player's ownership acknowledgment.
+Files are written to private app storage, never bundled into the public IPA.
+
+**This is source-file acquisition, not complete Horizon preparation**:
+the desktop `horizon-prepare` extracts game data by calling vanilla Java 25
+exporter code to produce hundreds of derived JSON tables and textures,
+including `horizon-resources.json`. Those exporters are not runnable on iOS
+without porting their preparation logic to native Rust. We do not show
+"Play Minecraft" as enabled, claim Java itself was installed, or claim that
+downloaded jars satisfy `Assets::load`. Prepared resources may still be
+imported via Files, and the independent Metal game diagnostic remains.
+
+On the iPhone, please test: portrait safe-area layout, navigation,
+Mojang HTTPS downloads and SHA checks, resource import, and separate Metal
+screen. Compilation cannot prove that the Java assets are available at Mojang's
+pinned hashes or that the app's network/Metal surfaces work on-device.
