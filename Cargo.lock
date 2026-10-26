@@ -1355,6 +1355,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "horizon-ios-bridge"
+version = "0.1.0"
+dependencies = [
+ "horizon-client",
+ "horizon-core",
+]
+
+[[package]]
 name = "horizon-mod-sdk"
 version = "0.1.0"
 dependencies = [
