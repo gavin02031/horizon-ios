@@ -40,3 +40,23 @@ Because the new SwiftUI bundle ID uses a **different sandbox**, resource files
 imported into the old Rust-only app do not migrate automatically. Import your
 prepared resources again from Files; do not delete the old app until you have
 copied any data you want to preserve. No passwords/tokens are imported.
+
+## Full-screen sizing fix (v0.4.1)
+
+A portrait screenshot from an iPhone 15 showed the entire SwiftUI viewport
+letterboxed with black bands above and below. The project's hand-authored
+`Info.plist` lacked the `UILaunchScreen` key, and XcodeGen disables automatic
+Info.plist generation, so there was no generated launch screen either.
+
+This patch adds the standard empty `UILaunchScreen` dictionary used in
+modern SwiftUI templates and verifies that it survives Xcode's packaging.
+Portrait launch and landscape Metal test orientations remain supported,
+with the existing UIKit scene geometry requests preserved.
+
+**Validation:** a successful CI build is not a physical-device sizing test.
+If installed over an old IPA and letterboxing persists, preserve/copy any
+Documents from the installed app, remove that version, then sideload v0.4.1
+afresh and take a new screenshot. Deleting an app can delete its sandbox files.
+
+The app uses its own `com.gavin02031.horizonios.swiftui` bundle identifier,
+not the prior legacy Rust-only `com.gavin02031.horizonios` app.

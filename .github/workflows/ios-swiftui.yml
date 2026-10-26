@@ -50,10 +50,14 @@ jobs:
           plutil -lint "$APP/Info.plist"
           test "$(plutil -extract CFBundleIdentifier raw -o - "$APP/Info.plist")" = "com.gavin02031.horizonios.swiftui"
           test "$(plutil -extract HorizonBuildChannel raw -o - "$APP/Info.plist")" = "portrait-metal-test"
-          test "$(plutil -extract CFBundleShortVersionString raw -o - "$APP/Info.plist")" = "0.4.0"
+          test "$(plutil -extract CFBundleShortVersionString raw -o - "$APP/Info.plist")" = "0.4.1"
+          # An explicit launch-screen configuration is required for modern
+          # iPhone display sizing (and iOS 27 App Store validation).
+          plutil -extract UILaunchScreen json -o - "$APP/Info.plist" >/dev/null
+          test "$(plutil -extract UIRequiresFullScreen raw -o - "$APP/Info.plist")" = "true"
           test "$(xcrun lipo -archs "$APP/Horizon")" = "arm64"
           xcrun otool -L "$APP/Horizon" | grep -F "SwiftUI.framework"
-          echo "Verified Horizon iOS portrait+Metal v0.4.0"
+          echo "Verified Horizon iOS portrait+Metal v0.4.1"
       - name: Assemble experimental unsigned IPA
         run: |
           set -euo pipefail
@@ -61,11 +65,11 @@ jobs:
           cp -R "$RUNNER_TEMP/HorizonDerived/Build/Products/Release-iphoneos/Horizon.app" \
             "$RUNNER_TEMP/ipa/Payload/"
           cd "$RUNNER_TEMP/ipa"
-          zip -qry "$GITHUB_WORKSPACE/Horizon-Portrait-Metal-0.4.0-unsigned.ipa" Payload
+          zip -qry "$GITHUB_WORKSPACE/Horizon-Portrait-Metal-0.4.1-unsigned.ipa" Payload
       - uses: actions/upload-artifact@v4
         with:
-          name: Horizon-Portrait-Metal-v0.4.0-TEST
-          path: Horizon-Portrait-Metal-0.4.0-unsigned.ipa
+          name: Horizon-Portrait-Metal-v0.4.1-TEST
+          path: Horizon-Portrait-Metal-0.4.1-unsigned.ipa
           if-no-files-found: error
           retention-days: 7
       - name: Mark scope honestly
