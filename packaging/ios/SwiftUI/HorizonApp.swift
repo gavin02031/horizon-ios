@@ -7,13 +7,13 @@ struct HorizonPhoneApp: App {
 
     var body: some Scene {
         WindowGroup {
-            LauncherView()
+            DesktopInspiredLauncherView()
                 .preferredColorScheme(.dark)
         }
     }
 }
 
-private enum Page: String, CaseIterable {
+enum Page: String, CaseIterable {
     case home = "Home"
     case worlds = "Worlds"
     case files = "Files"
@@ -28,7 +28,7 @@ private enum Page: String, CaseIterable {
     }
 }
 
-private enum ResourceStatus: Int32 {
+enum ResourceStatus: Int32 {
     case ready = 0
     case missing = 1
     case incomplete = 2
@@ -55,7 +55,7 @@ private enum ResourceStatus: Int32 {
 }
 
 @MainActor
-private final class HorizonModel: ObservableObject {
+final class HorizonModel: ObservableObject {
     @Published var page: Page = .home
     @Published var status: ResourceStatus = .missing
     @Published var importing = false
