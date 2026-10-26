@@ -211,7 +211,7 @@ private struct LauncherView: View {
             }
             .font(.system(size: 10, weight: .semibold))
             .foregroundStyle(.white.opacity(0.62))
-            Text("JAVA \(model.javaVersion)")
+            Text("SWIFTUI 0.3 • JAVA \(model.javaVersion)")
                 .font(.system(size: 10, weight: .medium, design: .monospaced))
                 .foregroundStyle(.white.opacity(0.44))
                 .padding(.top, 4)

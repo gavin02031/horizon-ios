@@ -39,6 +39,19 @@ jobs:
             -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
             -derivedDataPath "$RUNNER_TEMP/HorizonDerived" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+      - name: Verify that this is the SwiftUI app, not the legacy Rust executable
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="$RUNNER_TEMP/HorizonDerived/Build/Products/Release-iphoneos/Horizon.app"
+          test -x "$APP/Horizon"
+          plutil -lint "$APP/Info.plist"
+          test "$(plutil -extract CFBundleIdentifier raw -o - "$APP/Info.plist")" = "com.gavin02031.horizonios.swiftui"
+          test "$(plutil -extract HorizonBuildChannel raw -o - "$APP/Info.plist")" = "swiftui-launcher"
+          test "$(plutil -extract CFBundleShortVersionString raw -o - "$APP/Info.plist")" = "0.3.0"
+          test "$(xcrun lipo -archs "$APP/Horizon")" = "arm64"
+          xcrun otool -L "$APP/Horizon" | grep -F "SwiftUI.framework"
+          echo "Verified SwiftUI app: com.gavin02031.horizonios.swiftui, v0.3.0"
       - name: Assemble experimental unsigned IPA
         run: |
           set -euo pipefail
@@ -46,11 +59,11 @@ jobs:
           cp -R "$RUNNER_TEMP/HorizonDerived/Build/Products/Release-iphoneos/Horizon.app" \
             "$RUNNER_TEMP/ipa/Payload/"
           cd "$RUNNER_TEMP/ipa"
-          zip -qry "$GITHUB_WORKSPACE/Horizon-SwiftUI-Rust-unsigned.ipa" Payload
+          zip -qry "$GITHUB_WORKSPACE/Horizon-SwiftUI-0.3.0-unsigned.ipa" Payload
       - uses: actions/upload-artifact@v4
         with:
-          name: Horizon-SwiftUI-Rust-unsigned-IPA
-          path: Horizon-SwiftUI-Rust-unsigned.ipa
+          name: Horizon-SwiftUI-0.3.0-ONLY
+          path: Horizon-SwiftUI-0.3.0-unsigned.ipa
           if-no-files-found: error
           retention-days: 7
       - name: Mark scope honestly

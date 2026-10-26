@@ -44,3 +44,20 @@ construct a native SwiftUI app, and creates an unsigned IPA artifact.
 Sideloading requires valid signing and provisioning for the user's device.
 
 The previous Rust-only native engine workflow remains on the parent branch.
+
+## Avoid installing the older gray-screen engine IPA
+
+On GitHub Actions, download only the artifact called
+`Horizon-SwiftUI-0.3.0-ONLY` from the **iOS SwiftUI launcher + Rust bridge**
+workflow. Its packaged filename is `Horizon-SwiftUI-0.3.0-unsigned.ipa`.
+The older `horizon-ios-engine-experimental` artifact is the original desktop
+winit window and produces the solid gray screen reported on iPhone. It is
+**not the SwiftUI launcher**. The old workflow is skipped on the SwiftUI PR.
+
+This diagnostic build intentionally uses bundle ID
+`com.gavin02031.horizonios.swiftui` and home-screen display name
+**Horizon UI**, so it can be installed *alongside* the older Horizon app
+without replacing it. Its sidebar reads **SWIFTUI 0.3**. If you see a gray
+window rather than this UI, verify which home-screen app was opened.
+The new bundle has a separate iOS Documents sandbox; previously imported
+resources may need importing again.
