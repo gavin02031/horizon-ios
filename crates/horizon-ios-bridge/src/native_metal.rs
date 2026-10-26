@@ -90,7 +90,7 @@ impl MetalSurface {
         let view = NonNull::new(view).ok_or("missing UIKit view")?;
         let mut descriptor = wgpu::InstanceDescriptor::new_without_display_handle();
         descriptor.backends = wgpu::Backends::METAL;
-        let instance=wgpu::Instance::new(&descriptor);
+        let instance=wgpu::Instance::new(descriptor);
         let target = wgpu::SurfaceTargetUnsafe::RawHandle {
             raw_window_handle: RawWindowHandle::UiKit(UiKitWindowHandle::new(view)),
             raw_display_handle: Some(RawDisplayHandle::UiKit(UiKitDisplayHandle::new())),
@@ -178,13 +178,16 @@ impl MetalSurface {
     fn draw(&mut self,dt:f32,x:f32,z:f32,yaw:f32,pitch:f32)->bool {
         self.time+=dt;
         let frame=match self.surface.get_current_texture() {
-            Ok(frame)=>frame,
-            Err(wgpu::SurfaceError::Lost|wgpu::SurfaceError::Outdated)=>{
+            wgpu::CurrentSurfaceTexture::Success(frame)
+            | wgpu::CurrentSurfaceTexture::Suboptimal(frame) => frame,
+            wgpu::CurrentSurfaceTexture::Outdated
+            | wgpu::CurrentSurfaceTexture::Lost => {
                 self.surface.configure(&self.device,&self.config);
                 return true;
             },
-            Err(wgpu::SurfaceError::Timeout)=>return true,
-            Err(_)=>return false,
+            wgpu::CurrentSurfaceTexture::Timeout
+            | wgpu::CurrentSurfaceTexture::Occluded => return true,
+            _ => return false,
         };
         let uniforms=[
             self.config.width as f32,self.config.height as f32,self.time,0.0,
