@@ -126,7 +126,7 @@ private final class EmbeddedMetalCoordinator: NSObject {
         }
 
         let physical = GCController.controllers().first(where: { $0.extendedGamepad != nil })?.extendedGamepad
-        status.controllerConnected = physical != nil && frameCounter % 60 == 0
+        if frameCounter % 60 == 0 { status.controllerConnected = physical != nil }
         if let pad = physical {
             var buttons: UInt32 = 0
             if pad.buttonA.isPressed { buttons |= PadBits.jump }
