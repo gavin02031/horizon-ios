@@ -1360,6 +1360,9 @@ version = "0.1.0"
 dependencies = [
  "horizon-client",
  "horizon-core",
+ "pollster",
+ "raw-window-handle",
+ "wgpu",
 ]
 
 [[package]]
