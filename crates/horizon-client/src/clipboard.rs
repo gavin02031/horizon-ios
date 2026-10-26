@@ -112,6 +112,9 @@ pub trait Clipboard {
 /// game can still be pasted in the game.
 #[derive(Default)]
 pub struct SystemClipboard {
+    // iOS uses app-local copy and paste until UIKit UIPasteboard is wired up.
+    // Do not compile arboard (with its desktop Wayland backend) for iPhone.
+    #[cfg(not(target_os = "ios"))]
     system: Option<arboard::Clipboard>,
     /// The text Horizon last copied (`horizon-ctl status`).
     copied: Option<String>,
@@ -122,6 +125,7 @@ impl SystemClipboard {
     pub fn copied(&self) -> Option<&str> {
         self.copied.as_deref()
     }
+    #[cfg(not(target_os = "ios"))]
     fn system(&mut self) -> Option<&mut arboard::Clipboard> {
         if self.system.is_none() {
             self.system = arboard::Clipboard::new().ok();
@@ -132,16 +136,23 @@ impl SystemClipboard {
 
 impl Clipboard for SystemClipboard {
     fn get(&mut self) -> String {
-        let Some(system) = self.system() else {
-            return self.copied.clone().unwrap_or_default();
-        };
-        match system.get_text() {
-            Ok(text) => text,
-            Err(arboard::Error::ContentNotAvailable) => String::new(),
-            Err(_) => {
-                // A lost connection (a restarted compositor): reconnect next time.
-                self.system = None;
-                String::new()
+        #[cfg(target_os = "ios")]
+        {
+            self.copied.clone().unwrap_or_default()
+        }
+        #[cfg(not(target_os = "ios"))]
+        {
+            let Some(system) = self.system() else {
+                return self.copied.clone().unwrap_or_default();
+            };
+            match system.get_text() {
+                Ok(text) => text,
+                Err(arboard::Error::ContentNotAvailable) => String::new(),
+                Err(_) => {
+                    // A lost connection (a restarted compositor): reconnect next time.
+                    self.system = None;
+                    String::new()
+                }
             }
         }
     }
@@ -150,10 +161,13 @@ impl Clipboard for SystemClipboard {
             return;
         }
         self.copied = Some(text.to_owned());
-        if let Some(system) = self.system()
-            && system.set_text(text.to_owned()).is_err()
+        #[cfg(not(target_os = "ios"))]
         {
-            self.system = None;
+            if let Some(system) = self.system()
+                && system.set_text(text.to_owned()).is_err()
+            {
+                self.system = None;
+            }
         }
     }
 }

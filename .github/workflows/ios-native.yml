@@ -1,0 +1,65 @@
+name: iOS native engine (experimental)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - ios/native-arm64-first-pass
+  pull_request:
+    paths:
+      - '.github/workflows/ios-native.yml'
+      - 'crates/horizon-client/**'
+      - 'packaging/ios/**'
+
+permissions:
+  contents: read
+
+jobs:
+  iphone-arm64:
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show Apple toolchain
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: horizon-ios-arm64
+      - name: Cross-compile real Horizon game engine for iPhone
+        run: |
+          cargo build --locked --release -p horizon-client --bin horizon-ios \
+            --target aarch64-apple-ios --no-default-features
+      - name: Package unsigned experimental IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="$RUNNER_TEMP/bundle/Payload/Horizon.app"
+          mkdir -p "$APP"
+          cp target/aarch64-apple-ios/release/horizon-ios "$APP/Horizon"
+          cp packaging/ios/Info.plist "$APP/Info.plist"
+          plutil -lint "$APP/Info.plist"
+          chmod +x "$APP/Horizon"
+          # No proprietary Minecraft content is packaged. A sideloading tool
+          # must apply the user's valid iOS code signature and provisioning.
+          codesign --force --sign - "$APP/Horizon"
+          cd "$RUNNER_TEMP/bundle"
+          zip -qry "$GITHUB_WORKSPACE/horizon-ios-EXPERIMENTAL-unsigned.ipa" Payload
+      - name: Upload experimental bundle for engineering verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: horizon-ios-engine-experimental
+          path: horizon-ios-EXPERIMENTAL-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 7
+      - name: State current limitations
+        if: always()
+        run: |
+          echo "### iPhone 15 native-engine experiment" >> "$GITHUB_STEP_SUMMARY"
+          echo "Passing compilation is not proof that the app launches on iOS 27." >> "$GITHUB_STEP_SUMMARY"
+          echo "iOS 27 UIScene compatibility, touch controls and on-device world rendering remain to be verified." >> "$GITHUB_STEP_SUMMARY"
+          echo "This build contains no Minecraft assets or Java runtime/JIT." >> "$GITHUB_STEP_SUMMARY"
