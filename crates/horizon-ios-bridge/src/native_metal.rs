@@ -144,8 +144,8 @@ impl MetalSurface {
         });
         let pipeline_layout=device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label:Some("iOS diagnostic pipeline"),
-            bind_group_layouts:&[&layout],
-            immediate_size:0,
+            bind_group_layouts:&[Some(&layout)],
+            ..Default::default()
         });
         let pipeline=device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label:Some("iOS Metal scene diagnostic"),
