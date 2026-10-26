@@ -1,0 +1,75 @@
+name: iOS SwiftUI launcher + Rust bridge
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - ios/swiftui-launcher
+
+permissions:
+  contents: read
+
+jobs:
+  iphone-swiftui:
+    runs-on: macos-15
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: horizon-swiftui-arm64
+      - name: Build native Rust core and Swift bridge
+        run: |
+          cargo build --locked --release -p horizon-ios-bridge --target aarch64-apple-ios
+          test -s target/aarch64-apple-ios/release/libhorizon_ios_bridge.a
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate SwiftUI Xcode project
+        run: xcodegen generate --spec packaging/ios/project.yml --project packaging/ios
+      - name: Compile SwiftUI iPhone app linked to Rust
+        run: |
+          xcodebuild -project packaging/ios/Horizon.xcodeproj -scheme Horizon \
+            -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/HorizonDerived" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+      - name: Verify that this is the SwiftUI app, not the legacy Rust executable
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="$RUNNER_TEMP/HorizonDerived/Build/Products/Release-iphoneos/Horizon.app"
+          test -x "$APP/Horizon"
+          plutil -lint "$APP/Info.plist"
+          test "$(plutil -extract CFBundleIdentifier raw -o - "$APP/Info.plist")" = "com.gavin02031.horizonios.swiftui"
+          test "$(plutil -extract HorizonBuildChannel raw -o - "$APP/Info.plist")" = "swiftui-launcher"
+          test "$(plutil -extract CFBundleShortVersionString raw -o - "$APP/Info.plist")" = "0.3.0"
+          test "$(xcrun lipo -archs "$APP/Horizon")" = "arm64"
+          xcrun otool -L "$APP/Horizon" | grep -F "SwiftUI.framework"
+          echo "Verified SwiftUI app: com.gavin02031.horizonios.swiftui, v0.3.0"
+      - name: Assemble experimental unsigned IPA
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$RUNNER_TEMP/HorizonDerived/Build/Products/Release-iphoneos/Horizon.app" \
+            "$RUNNER_TEMP/ipa/Payload/"
+          cd "$RUNNER_TEMP/ipa"
+          zip -qry "$GITHUB_WORKSPACE/Horizon-SwiftUI-0.3.0-unsigned.ipa" Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Horizon-SwiftUI-0.3.0-ONLY
+          path: Horizon-SwiftUI-0.3.0-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 7
+      - name: Mark scope honestly
+        if: always()
+        run: |
+          echo "### SwiftUI launcher + real Rust static library" >> "$GITHUB_STEP_SUMMARY"
+          echo "The rust bridge validates Java Edition assets with Horizon's Assets::load." >> "$GITHUB_STEP_SUMMARY"
+          echo "This IPA does NOT yet contain a playable embedded Metal game scene." >> "$GITHUB_STEP_SUMMARY"
+          echo "SwiftUI scenes replace the former winit-owned UIApplication startup." >> "$GITHUB_STEP_SUMMARY"

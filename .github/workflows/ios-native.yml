@@ -16,6 +16,8 @@ permissions:
 
 jobs:
   iphone-arm64:
+    # Never publish the gray-screen legacy binary from a SwiftUI launcher PR.
+    if: github.event_name != 'pull_request' || github.head_ref != 'ios/swiftui-launcher'
     runs-on: macos-15
     timeout-minutes: 90
     steps:
