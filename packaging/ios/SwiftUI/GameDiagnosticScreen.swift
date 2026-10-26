@@ -353,5 +353,7 @@ struct GameDiagnosticScreen: View {
             .background(.black)
         }
         .statusBarHidden()
+        .onAppear { HorizonOrientation.request(.landscape) }
+        .onDisappear { HorizonOrientation.request(.portrait) }
     }
 }

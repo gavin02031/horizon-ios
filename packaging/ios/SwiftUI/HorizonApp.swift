@@ -3,6 +3,8 @@ import UniformTypeIdentifiers
 
 @main
 struct HorizonPhoneApp: App {
+    @UIApplicationDelegateAdaptor(HorizonOrientationDelegate.self) private var orientationDelegate
+
     var body: some Scene {
         WindowGroup {
             LauncherView()
@@ -14,12 +16,14 @@ struct HorizonPhoneApp: App {
 private enum Page: String, CaseIterable {
     case home = "Home"
     case worlds = "Worlds"
+    case files = "Files"
     case settings = "Settings"
     var symbol: String {
         switch self {
         case .home: "house.fill"
         case .worlds: "square.stack.3d.up.fill"
-        case .settings: "slider.horizontal.3"
+        case .files: "square.and.arrow.down"
+        case .settings: "gearshape.fill"
         }
     }
 }
@@ -32,7 +36,7 @@ private enum ResourceStatus: Int32 {
 
     var title: String {
         switch self {
-        case .ready: "Minecraft resources verified"
+        case .ready: "Core Minecraft resources verified"
         case .missing: "Minecraft resources required"
         case .incomplete: "Resources are incomplete or incompatible"
         case .unavailable: "Unable to access app storage"
@@ -40,7 +44,7 @@ private enum ResourceStatus: Int32 {
     }
     var details: String {
         switch self {
-        case .ready: "Rust validated the Java Edition data. Gameplay integration is next."
+        case .ready: "The native Rust engine checked the prepared data. The full game renderer is still being connected."
         case .missing: "Import resources prepared from your own Minecraft Java Edition 26.3 installation."
         case .incomplete: "Use the complete Horizon-prepared resources folder for Java Edition 26.3."
         case .unavailable: "The app couldn't find its Documents folder."
@@ -125,39 +129,54 @@ private final class HorizonModel: ObservableObject {
     }
 }
 
+
+private enum HorizonPalette {
+    static let bg = Color(red: 0.035, green: 0.052, blue: 0.102)
+    static let card = Color(red: 0.083, green: 0.112, blue: 0.185)
+    static let accent = Color(red: 0.16, green: 0.79, blue: 0.98)
+    static let blue = Color(red: 0.06, green: 0.42, blue: 0.98)
+    static let muted = Color(red: 0.64, green: 0.72, blue: 0.85)
+}
+
 private struct LauncherView: View {
     @StateObject private var model = HorizonModel()
     @State private var showFileImporter = false
     @State private var showMetalDiagnostic = false
 
-    private let background = Color(red: 0.055, green: 0.068, blue: 0.115)
-    private let panel = Color(red: 0.105, green: 0.126, blue: 0.205)
-
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                background.ignoresSafeArea()
-                RadialGradient(colors: [.indigo.opacity(0.42), .clear],
-                    center: .topTrailing, startRadius: 20, endRadius: 520)
-                    .ignoresSafeArea()
+        ZStack {
+            HorizonPalette.bg.ignoresSafeArea()
+            RadialGradient(colors: [HorizonPalette.blue.opacity(0.24), .clear],
+                           center: .topTrailing, startRadius: 0, endRadius: 480)
+                .ignoresSafeArea()
 
-                HStack(spacing: 18) {
-                    sidebar
-                        .frame(width: min(164, max(112, geo.size.width * 0.20)))
-                    Rectangle()
-                        .fill(.white.opacity(0.09))
-                        .frame(width: 1)
-                    ScrollView {
-                        content
-                            .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 19) {
+                        header
+                        switch model.page {
+                        case .home: home
+                        case .worlds: worlds
+                        case .files: files
+                        case .settings: settings
+                        }
                     }
-                    .scrollIndicators(.hidden)
+                    .frame(maxWidth: 580, alignment: .leading)
+                    .padding(.horizontal, 19)
+                    .padding(.top, 10)
+                    .padding(.bottom, 20)
+                    .frame(maxWidth: .infinity)
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 14)
+                .scrollIndicators(.hidden)
+                tabBar
             }
         }
-        .fullScreenCover(isPresented: $showMetalDiagnostic) {
+        .foregroundStyle(.white)
+        .onAppear { HorizonOrientation.request(.portrait) }
+        .fullScreenCover(isPresented: $showMetalDiagnostic, onDismiss: {
+            HorizonOrientation.request(.portrait)
+            model.refresh()
+        }) {
             GameDiagnosticScreen()
         }
         .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.folder],
@@ -179,193 +198,443 @@ private struct LauncherView: View {
         }
     }
 
-    private var sidebar: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 10) {
-                Image(systemName: "sun.horizon.fill")
-                    .font(.system(size: 26))
-                    .foregroundStyle(.cyan)
+    private var header: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: "cube.transparent.fill")
+                .font(.system(size: 23, weight: .semibold))
+                .foregroundStyle(HorizonPalette.accent)
+                .frame(width: 45, height: 45)
+                .background(HorizonPalette.blue.opacity(0.19),
+                            in: RoundedRectangle(cornerRadius: 14))
+            VStack(alignment: .leading, spacing: 2) {
                 Text("HORIZON")
-                    .font(.system(size: 15, weight: .black, design: .rounded))
-                    .tracking(1.5)
+                    .font(.system(size: 21, weight: .heavy, design: .rounded))
+                    .tracking(1.1)
+                Text("JAVA EDITION · NATIVE iOS")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.7)
+                    .foregroundStyle(HorizonPalette.accent)
             }
-            .padding(.bottom, 25)
-
-            ForEach(Page.allCases, id: \.self) { page in
-                Button { model.page = page } label: {
-                    HStack(spacing: 11) {
-                        Image(systemName: page.symbol).frame(width: 19)
-                        Text(page.rawValue)
-                        Spacer(minLength: 0)
-                    }
-                    .font(.system(size: 14, weight: model.page == page ? .bold : .medium))
-                    .foregroundStyle(model.page == page ? .white : .white.opacity(0.6))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 13)
-                    .background(model.page == page ? .white.opacity(0.11) : .clear,
-                                in: RoundedRectangle(cornerRadius: 12))
-                }
-                .buttonStyle(.plain)
-            }
-
-            Spacer(minLength: 12)
-            HStack(spacing: 7) {
-                Circle().fill(.mint).frame(width: 6, height: 6)
-                Text("Rust bridge v\(model.bridgeVersion)")
-            }
-            .font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(.white.opacity(0.62))
-            Text("JAVA \(model.javaVersion)")
-                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.44))
-                .padding(.top, 4)
-        }
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        switch model.page {
-        case .home: home
-        case .worlds: worlds
-        case .settings: settings
+            Spacer(minLength: 6)
+            Text("ARM64 · METAL")
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .foregroundStyle(HorizonPalette.muted)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 9)
+                .background(.white.opacity(0.07), in: Capsule())
         }
     }
 
     private var home: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("MINECRAFT JAVA EDITION")
-                        .font(.system(size: 10, weight: .heavy))
-                        .tracking(2)
-                        .foregroundStyle(.cyan)
-                    Text("Your world, on iPhone.")
-                        .font(.system(size: 25, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+        VStack(alignment: .leading, spacing: 17) {
+            VStack(alignment: .leading, spacing: 9) {
+                Text("YOUR NEXT ADVENTURE")
+                    .font(.system(size: 10, weight: .heavy))
+                    .tracking(2.1)
+                    .foregroundStyle(HorizonPalette.accent)
+                Text("Your world,\non iPhone.")
+                    .font(.system(size: 37, weight: .heavy, design: .rounded))
+                    .minimumScaleFactor(0.85)
+                    .lineSpacing(-4)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Minecraft Java Edition, rebuilt in Rust.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(HorizonPalette.muted)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 22)
+            .background(
+                LinearGradient(colors: [
+                    Color(red: 0.10, green: 0.19, blue: 0.34),
+                    Color(red: 0.08, green: 0.09, blue: 0.20)
+                ], startPoint: .topLeading, endPoint: .bottomTrailing),
+                in: RoundedRectangle(cornerRadius: 22)
+            )
+            .overlay(RoundedRectangle(cornerRadius: 22).stroke(HorizonPalette.accent.opacity(0.20)))
+
+            Button { showMetalDiagnostic = true } label: {
+                HStack(spacing: 13) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 21, weight: .semibold))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Test native Metal & controls")
+                            .font(.system(size: 16, weight: .bold))
+                        Text("Full-screen GPU test · not Minecraft gameplay")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.85))
+                    }
+                    Spacer(minLength: 3)
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 12, weight: .bold))
                 }
-                Spacer()
-                Label("Native ARM64", systemImage: "cpu")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.8))
-                    .padding(9)
-                    .background(.white.opacity(0.09), in: Capsule())
+                .foregroundStyle(.white)
+                .padding(16)
+                .background(
+                    LinearGradient(colors: [HorizonPalette.accent, HorizonPalette.blue],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing),
+                    in: RoundedRectangle(cornerRadius: 18)
+                )
             }
-            HStack(spacing: 12) {
-                Button { showMetalDiagnostic = true } label: {
-                    actionCard("Test Metal view", "Full-screen native GPU + controls.", "play.rectangle.fill", accent: .cyan)
-                }.buttonStyle(.plain)
-                actionCard("Multiplayer", "Servers and friends.", "person.2.fill", accent: .purple)
-            }
+            .buttonStyle(.plain)
+
             resourceCard
-            Text("The Metal test verifies Rust GPU presentation and iPhone input. Minecraft world simulation/rendering still needs extraction from Horizon’s winit game loop.")
+            sectionHeading("Game readiness", "CPU + GPU progress")
+            HStack(spacing: 10) {
+                progressCard("Rust engine", "Compiled", "checkmark.seal.fill", .mint)
+                progressCard("Metal display", "Test available", "cpu.fill", HorizonPalette.accent)
+            }
+            HStack(spacing: 10) {
+                progressCard("World gameplay", "Integration pending", "shippingbox", .orange)
+                progressCard("Microsoft", "Not signed in here", "person.crop.circle", .orange)
+            }
+            Text("Version " + model.javaVersion + " identifies the Java Edition data Horizon targets. This app does not install Java or download Minecraft from Microsoft automatically.")
                 .font(.system(size: 11))
-                .foregroundStyle(.white.opacity(0.55))
+                .foregroundStyle(HorizonPalette.muted)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
-    private func actionCard(_ title: String, _ subtitle: String, _ symbol: String, accent: Color) -> some View {
+    private func progressCard(_ title: String, _ detail: String,
+                              _ icon: String, _ tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: symbol)
-                .font(.system(size: 25))
-                .foregroundStyle(accent)
-            Spacer(minLength: 0)
-            Text(title).font(.system(size: 18, weight: .bold, design: .rounded))
-            Text(subtitle).font(.system(size: 11)).foregroundStyle(.white.opacity(0.58))
-            Label(title == "Test Metal view" ? "GPU input diagnostic" : "Engine integration pending",
-                  systemImage: title == "Test Metal view" ? "cpu" : "lock.fill")
-                .font(.system(size: 10))
-                .foregroundStyle(.white.opacity(0.45))
+            Image(systemName: icon)
+                .font(.system(size: 18))
+                .foregroundStyle(tint)
+            Text(title).font(.system(size: 12, weight: .bold))
+                .lineLimit(1).minimumScaleFactor(0.8)
+            Text(detail).font(.system(size: 10))
+                .foregroundStyle(HorizonPalette.muted)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .foregroundStyle(.white)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(height: 115)
-        .padding(14)
-        .background(
-            LinearGradient(colors: [accent.opacity(0.17), panel],
-                           startPoint: .topLeading, endPoint: .bottomTrailing),
-            in: RoundedRectangle(cornerRadius: 18))
-        .overlay(RoundedRectangle(cornerRadius: 18).stroke(.white.opacity(0.07)))
+        .frame(maxWidth: .infinity, minHeight: 91, alignment: .leading)
+        .padding(13)
+        .background(HorizonPalette.card, in: RoundedRectangle(cornerRadius: 16))
     }
 
     private var resourceCard: some View {
-        HStack(spacing: 13) {
-            Image(systemName: model.status.icon)
-                .font(.system(size: 22))
-                .foregroundStyle(model.status.color)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(model.status.title)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white)
-                Text(model.status.details)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.white.opacity(0.62))
-                    .fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                Image(systemName: model.status.icon)
+                    .font(.system(size: 23))
+                    .foregroundStyle(model.status.color)
+                    .frame(width: 32)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(model.status.title)
+                        .font(.system(size: 14, weight: .bold))
+                    Text(model.status.details)
+                        .font(.system(size: 11))
+                        .foregroundStyle(HorizonPalette.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-            Spacer(minLength: 8)
-            if model.busy {
-                ProgressView().tint(.cyan)
-            } else {
-                Button {
-                    showFileImporter = true
-                } label: {
-                    Label("Import files", systemImage: "folder.badge.plus")
-                        .font(.system(size: 11, weight: .semibold))
-                        .padding(.vertical, 11)
-                        .padding(.horizontal, 12)
-                        .background(.cyan.opacity(0.24), in: RoundedRectangle(cornerRadius: 11))
+            HStack(spacing: 10) {
+                Button { showFileImporter = true } label: {
+                    Label("Import my game files", systemImage: "folder.badge.plus")
+                        .font(.system(size: 12, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 13)
+                        .background(HorizonPalette.blue.opacity(0.36),
+                                    in: RoundedRectangle(cornerRadius: 12))
+                }
+                .disabled(model.busy)
+                Button { model.refresh() } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(width: 43, height: 43)
+                        .background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: 12))
+                }
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(16)
+        .background(HorizonPalette.card, in: RoundedRectangle(cornerRadius: 19))
+        .overlay(RoundedRectangle(cornerRadius: 19).stroke(.white.opacity(0.06)))
+    }
+
+    private func sectionHeading(_ title: String, _ subtitle: String? = nil) -> some View {
+        HStack {
+            Text(title)
+                .font(.system(size: 19, weight: .bold, design: .rounded))
+            Spacer()
+            if let subtitle {
+                Text(subtitle)
+                    .font(.system(size: 10))
+                    .foregroundStyle(HorizonPalette.muted)
+            }
+        }
+    }
+
+    private var worlds: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            sectionHeading("My worlds")
+            Text("Saved Minecraft worlds on this iPhone. World launch stays unavailable until the actual Rust renderer and simulation are integrated.")
+                .font(.system(size: 12))
+                .foregroundStyle(HorizonPalette.muted)
+            WorldFoldersView()
+            resourceCard
+        }
+    }
+
+    private var files: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            sectionHeading("Game files")
+            Text("Horizon uses Minecraft Java Edition " + model.javaVersion + " data prepared from your own installation. It does not run a Java virtual machine.")
+                .font(.system(size: 12))
+                .foregroundStyle(HorizonPalette.muted)
+            resourceCard
+            VStack(alignment: .leading, spacing: 10) {
+                Label("Import instructions", systemImage: "info.circle")
+                    .font(.system(size: 15, weight: .semibold))
+                Text("On a computer, run Horizon's resource preparation for the matching Java Edition version. Move the resulting folder into Files on your iPhone, then import the folder here.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(HorizonPalette.muted)
+                Text("Don't upload game files, Microsoft login tokens, or credentials to a public GitHub repository.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.orange.opacity(0.85))
+            }
+            .padding(16)
+            .background(HorizonPalette.card, in: RoundedRectangle(cornerRadius: 18))
+        }
+    }
+
+    private var settings: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    sectionHeading("Settings")
+                    Text("Each category has its own page. Gameplay options become active once the Rust game loop is embedded.")
+                        .font(.system(size: 12))
+                        .foregroundStyle(HorizonPalette.muted)
+                    settingsLink("Graphics & performance", "speedometer",
+                                 "FPS target, render distance") {
+                        GraphicsSettingsView(renderDistance: $model.renderDistance,
+                                             frameLimit: $model.frameLimit)
+                    }
+                    settingsLink("Touch & Bluetooth", "gamecontroller.fill",
+                                 "Layout, controller mappings") {
+                        ControllerSettingsView()
+                    }
+                    settingsLink("Account & ownership", "person.crop.circle",
+                                 "Microsoft integration status") {
+                        AccountSettingsView()
+                    }
+                    settingsLink("About Horizon", "info.circle",
+                                 "App and Rust engine information") {
+                        AboutHorizonView(version: model.javaVersion, bridge: model.bridgeVersion)
+                    }
+                }
+                .padding(.bottom, 30)
+            }
+            .scrollIndicators(.hidden)
+            .toolbar(.hidden, for: .navigationBar)
+        }
+        .tint(HorizonPalette.accent)
+    }
+
+    private func settingsLink<Destination: View>(
+        _ title: String, _ symbol: String, _ subtitle: String,
+        @ViewBuilder destination: () -> Destination
+    ) -> some View {
+        NavigationLink(destination: destination()) {
+            HStack(spacing: 12) {
+                Image(systemName: symbol)
+                    .font(.system(size: 19))
+                    .foregroundStyle(HorizonPalette.accent)
+                    .frame(width: 30)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title).font(.system(size: 14, weight: .semibold))
+                    Text(subtitle).font(.system(size: 11))
+                        .foregroundStyle(HorizonPalette.muted)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(HorizonPalette.muted)
+            }
+            .padding(15)
+            .background(HorizonPalette.card, in: RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var tabBar: some View {
+        HStack(spacing: 0) {
+            ForEach(Page.allCases, id: \.self) { page in
+                Button { model.page = page } label: {
+                    VStack(spacing: 5) {
+                        Image(systemName: page.symbol)
+                            .font(.system(size: 19, weight: .medium))
+                        Text(page.rawValue)
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .foregroundStyle(model.page == page ? HorizonPalette.accent : HorizonPalette.muted)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 11)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(13)
-        .background(panel, in: RoundedRectangle(cornerRadius: 15))
-    }
-
-    private var worlds: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("My Worlds").font(.system(size: 26, weight: .bold, design: .rounded))
-            VStack(spacing: 12) {
-                Image(systemName: "square.stack.3d.up.slash")
-                    .font(.system(size: 32)).foregroundStyle(.cyan.opacity(0.75))
-                Text("World library coming next").font(.system(size: 15, weight: .bold))
-                Text("World browsing will read Minecraft saves from the app's Documents/Horizon folder. Rust handles the actual world data.")
-                    .font(.system(size: 12)).multilineTextAlignment(.center)
-                    .foregroundStyle(.white.opacity(0.6))
-            }
-            .frame(maxWidth: .infinity, minHeight: 190)
-            .padding()
-            .background(panel, in: RoundedRectangle(cornerRadius: 18))
+        .padding(.horizontal, 13)
+        .background(.ultraThinMaterial)
+        .overlay(alignment: .top) {
+            Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
         }
-        .foregroundStyle(.white)
     }
+}
 
-    private var settings: some View {
-        VStack(alignment: .leading, spacing: 13) {
-            Text("Settings").font(.system(size: 26, weight: .bold, design: .rounded))
-            Text("Performance preferences will connect to the Rust renderer after the Metal game view is embedded.")
-                .font(.system(size: 12)).foregroundStyle(.white.opacity(0.64))
-            VStack(alignment: .leading, spacing: 13) {
-                HStack {
-                    Label("Render distance", systemImage: "mountain.2")
-                    Spacer()
-                    Text("\(Int(model.renderDistance)) chunks").foregroundStyle(.cyan)
+private struct WorldFoldersView: View {
+    @State private var folders: [URL] = []
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if folders.isEmpty {
+                Label("No saved worlds found in Horizon's Documents folder.",
+                      systemImage: "square.stack.3d.up.slash")
+                    .font(.system(size: 12))
+                    .foregroundStyle(HorizonPalette.muted)
+                    .frame(maxWidth: .infinity, minHeight: 112)
+            } else {
+                ForEach(folders, id: \.path) { folder in
+                    HStack {
+                        Image(systemName: "globe.americas.fill")
+                            .foregroundStyle(HorizonPalette.accent)
+                        Text(folder.lastPathComponent)
+                            .font(.system(size: 14, weight: .semibold))
+                        Spacer()
+                        Text("Stored")
+                            .font(.system(size: 11))
+                            .foregroundStyle(HorizonPalette.muted)
+                    }
+                    .padding(.vertical, 9)
                 }
-                Slider(value: $model.renderDistance, in: 2...10, step: 1).tint(.cyan)
-                HStack {
-                    Label("Target frame rate", systemImage: "speedometer")
-                    Spacer()
-                    Text("\(Int(model.frameLimit)) FPS").foregroundStyle(.cyan)
+            }
+        }
+        .padding(16)
+        .background(HorizonPalette.card, in: RoundedRectangle(cornerRadius: 18))
+        .onAppear(perform: reload)
+    }
+    private func reload() {
+        guard let doc = FileManager.default.urls(for: .documentDirectory,
+                                                 in: .userDomainMask).first else { return }
+        let root = doc.appendingPathComponent("Horizon/saves", isDirectory: true)
+        folders = (try? FileManager.default.contentsOfDirectory(
+            at: root, includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]))?.filter {
+            (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
+        }.sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending } ?? []
+    }
+}
+
+private struct SettingsSubpage<Content: View>: View {
+    let title: String
+    @ViewBuilder var content: Content
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                Button { dismiss() } label: {
+                    Label("Settings", systemImage: "chevron.left")
+                        .font(.system(size: 13, weight: .semibold))
                 }
-                Picker("Target FPS", selection: $model.frameLimit) {
-                    Text("30").tag(30.0)
-                    Text("60").tag(60.0)
+                .buttonStyle(.plain)
+                .foregroundStyle(HorizonPalette.accent)
+                Text(title)
+                    .font(.system(size: 25, weight: .bold, design: .rounded))
+                content
+            }
+            .padding(.vertical, 12)
+        }
+        .scrollIndicators(.hidden)
+        .background(HorizonPalette.bg)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+}
+
+private struct GraphicsSettingsView: View {
+    @Binding var renderDistance: Double
+    @Binding var frameLimit: Double
+    var body: some View {
+        SettingsSubpage(title: "Graphics & performance") {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Saved as launcher preferences only — not yet applied to the game renderer.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.orange)
+                HStack {
+                    Text("Target render distance")
+                    Spacer()
+                    Text("\(Int(renderDistance)) chunks").foregroundStyle(HorizonPalette.accent)
+                }
+                Slider(value: $renderDistance, in: 2...10, step: 1)
+                    .tint(HorizonPalette.accent)
+                Text("Frame rate preference")
+                Picker("FPS", selection: $frameLimit) {
+                    Text("30 FPS").tag(30.0)
+                    Text("60 FPS").tag(60.0)
                 }
                 .pickerStyle(.segmented)
             }
-            .font(.system(size: 12, weight: .medium))
-            .padding(16)
-            .background(panel, in: RoundedRectangle(cornerRadius: 17))
+            .font(.system(size: 13))
+            .padding(17)
+            .background(HorizonPalette.card, in: RoundedRectangle(cornerRadius: 18))
         }
-        .foregroundStyle(.white)
+    }
+}
+
+private struct ControllerSettingsView: View {
+    var body: some View {
+        SettingsSubpage(title: "Touch & Bluetooth") {
+            VStack(alignment: .leading, spacing: 13) {
+                Label("Supported by the Metal test scene",
+                      systemImage: "gamecontroller.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                Text("Connect a Bluetooth gamepad in iOS Settings. The test scene reads Apple's extended controller profile and combines it with on-screen joystick, jump, attack and use controls.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(HorizonPalette.muted)
+                Text("Mappings are not yet connected to Minecraft gameplay.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.orange)
+            }
+            .padding(17)
+            .background(HorizonPalette.card, in: RoundedRectangle(cornerRadius: 18))
+        }
+    }
+}
+
+private struct AccountSettingsView: View {
+    var body: some View {
+        SettingsSubpage(title: "Microsoft account") {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Not connected in this iOS build",
+                      systemImage: "person.crop.circle.badge.questionmark")
+                    .font(.system(size: 14, weight: .semibold))
+                Text("Microsoft sign-in in desktop Horizon is not carried over automatically to this iPhone app. The iOS version does not yet include a secure Microsoft OAuth login and Minecraft entitlement verification.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(HorizonPalette.muted)
+                Text("Never paste access tokens into this app or a GitHub repository.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.orange)
+            }
+            .padding(17)
+            .background(HorizonPalette.card, in: RoundedRectangle(cornerRadius: 18))
+        }
+    }
+}
+
+private struct AboutHorizonView: View {
+    let version: String
+    let bridge: UInt32
+    var body: some View {
+        SettingsSubpage(title: "About Horizon") {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Minecraft Java Edition data: \(version)")
+                Text("Native Rust bridge API: \(bridge)")
+                Text("Runtime: compiled ARM64 Rust, no Java VM, no JIT")
+                Text("Display: Apple's Metal graphics API")
+                Text("Gameplay: not yet embedded in the iOS Metal scene")
+            }
+            .font(.system(size: 12))
+            .padding(17)
+            .background(HorizonPalette.card, in: RoundedRectangle(cornerRadius: 18))
+        }
     }
 }
