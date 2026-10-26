@@ -6,6 +6,7 @@ on:
     branches:
       - ios/swiftui-launcher
       - ios/metal-input-foundation
+      - ios/portrait-engine-integration
 
 permissions:
   contents: read

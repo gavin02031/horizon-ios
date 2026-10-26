@@ -527,8 +527,12 @@ private struct WorldFoldersView: View {
 
 private struct SettingsSubpage<Content: View>: View {
     let title: String
-    @ViewBuilder var content: Content
+    let content: Content
     @Environment(\.dismiss) private var dismiss
+    init(title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
