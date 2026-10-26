@@ -595,18 +595,38 @@ private struct DesktopSettingsView: View {
                     VStack(alignment: .leading, spacing: 13) {
                         Text("Settings")
                             .font(.system(size: 29, weight: .heavy))
-                        settingRow("Launcher & display",
-                                   detail: "Portrait UI, landscape Metal test",
-                                   symbol: "iphone")
-                        settingRow("Graphics",
-                                   detail: "Rust/Metal world graphics pending",
-                                   symbol: "cpu")
-                        settingRow("Controllers",
-                                   detail: "Bluetooth & touch input test ready",
-                                   symbol: "gamecontroller.fill")
-                        settingRow("Account",
-                                   detail: "Microsoft OAuth not implemented on iOS",
-                                   symbol: "person.crop.circle")
+                        NavigationLink {
+                            DesktopSettingsDetail(title: "Launcher & display",
+                                note: "The iOS launcher stays upright, with its game Metal scene presented full-screen in landscape.")
+                        } label: {
+                            settingRow("Launcher & display",
+                                       detail: "Portrait UI, landscape Metal test",
+                                       symbol: "iphone")
+                        }
+                        NavigationLink {
+                            DesktopSettingsDetail(title: "Graphics",
+                                note: "Horizon uses native ARM64 and Metal. Render distance and frame limit are not yet connected to the game simulation.")
+                        } label: {
+                            settingRow("Graphics",
+                                       detail: "Rust/Metal world graphics pending",
+                                       symbol: "cpu")
+                        }
+                        NavigationLink {
+                            DesktopSettingsDetail(title: "Controllers",
+                                note: "Bluetooth gamepads use Apple's GameController APIs. Joystick, camera swipe, jump, attack and use buttons are testable in the Metal diagnostic scene.")
+                        } label: {
+                            settingRow("Controllers",
+                                       detail: "Bluetooth & touch input test ready",
+                                       symbol: "gamecontroller.fill")
+                        }
+                        NavigationLink {
+                            DesktopSettingsDetail(title: "Account",
+                                note: "The iPhone fork does not yet authenticate against Microsoft or verify Minecraft ownership. Downloading pinned game files is not a Microsoft sign-in.")
+                        } label: {
+                            settingRow("Account",
+                                       detail: "Microsoft OAuth not implemented on iOS",
+                                       symbol: "person.crop.circle")
+                        }
                         Text("Horizon iOS is an independent native port. Game downloads don't automatically grant account authentication or prepare engine data.")
                             .font(.system(size: 12))
                             .foregroundStyle(DesktopTheme.muted)
@@ -640,5 +660,31 @@ private struct DesktopSettingsView: View {
         }
         .padding(16)
         .background(DesktopTheme.surface, in: RoundedRectangle(cornerRadius: 13))
+    }
+}
+
+private struct DesktopSettingsDetail: View {
+    let title: String
+    let note: String
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text(title)
+                    .font(.system(size: 25, weight: .heavy))
+                Text(note)
+                    .font(.system(size: 13))
+                    .foregroundStyle(DesktopTheme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("This setting becomes configurable once the corresponding native Rust game feature is connected.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(DesktopTheme.gold)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(18)
+        }
+        .background(DesktopTheme.background)
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle(title)
     }
 }
