@@ -218,7 +218,7 @@ impl MetalSurface {
             pass.draw(0..3,0..1);
         }
         self.queue.submit(Some(encoder.finish()));
-        frame.present();
+        self.queue.present(frame);
         true
     }
 }
