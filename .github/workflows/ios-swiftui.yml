@@ -41,6 +41,19 @@ jobs:
             -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
             -derivedDataPath "$RUNNER_TEMP/HorizonDerived" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+      - name: Verify this is the portrait SwiftUI app, not the legacy gray-screen binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="$RUNNER_TEMP/HorizonDerived/Build/Products/Release-iphoneos/Horizon.app"
+          test -x "$APP/Horizon"
+          plutil -lint "$APP/Info.plist"
+          test "$(plutil -extract CFBundleIdentifier raw -o - "$APP/Info.plist")" = "com.gavin02031.horizonios.swiftui"
+          test "$(plutil -extract HorizonBuildChannel raw -o - "$APP/Info.plist")" = "portrait-metal-test"
+          test "$(plutil -extract CFBundleShortVersionString raw -o - "$APP/Info.plist")" = "0.4.0"
+          test "$(xcrun lipo -archs "$APP/Horizon")" = "arm64"
+          xcrun otool -L "$APP/Horizon" | grep -F "SwiftUI.framework"
+          echo "Verified Horizon iOS portrait+Metal v0.4.0"
       - name: Assemble experimental unsigned IPA
         run: |
           set -euo pipefail
@@ -48,11 +61,11 @@ jobs:
           cp -R "$RUNNER_TEMP/HorizonDerived/Build/Products/Release-iphoneos/Horizon.app" \
             "$RUNNER_TEMP/ipa/Payload/"
           cd "$RUNNER_TEMP/ipa"
-          zip -qry "$GITHUB_WORKSPACE/Horizon-SwiftUI-Rust-unsigned.ipa" Payload
+          zip -qry "$GITHUB_WORKSPACE/Horizon-Portrait-Metal-0.4.0-unsigned.ipa" Payload
       - uses: actions/upload-artifact@v4
         with:
-          name: Horizon-SwiftUI-Rust-unsigned-IPA
-          path: Horizon-SwiftUI-Rust-unsigned.ipa
+          name: Horizon-Portrait-Metal-v0.4.0-TEST
+          path: Horizon-Portrait-Metal-0.4.0-unsigned.ipa
           if-no-files-found: error
           retention-days: 7
       - name: Mark scope honestly
@@ -60,5 +73,5 @@ jobs:
         run: |
           echo "### SwiftUI launcher + real Rust static library" >> "$GITHUB_STEP_SUMMARY"
           echo "The rust bridge validates Java Edition assets with Horizon's Assets::load." >> "$GITHUB_STEP_SUMMARY"
-          echo "This IPA does NOT yet contain a playable embedded Metal game scene." >> "$GITHUB_STEP_SUMMARY"
+          echo "This IPA includes a Rust Metal GPU/input diagnostic, NOT playable Minecraft terrain or survival." >> "$GITHUB_STEP_SUMMARY"
           echo "SwiftUI scenes replace the former winit-owned UIApplication startup." >> "$GITHUB_STEP_SUMMARY"

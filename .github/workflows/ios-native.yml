@@ -16,6 +16,8 @@ permissions:
 
 jobs:
   iphone-arm64:
+    # Prevent another gray-screen legacy artifact when work on the SwiftUI app is reviewed.
+    if: github.event_name != 'pull_request' || (github.head_ref != 'ios/swiftui-launcher' && github.head_ref != 'ios/metal-input-foundation' && github.head_ref != 'ios/portrait-engine-integration')
     runs-on: macos-15
     timeout-minutes: 90
     steps:

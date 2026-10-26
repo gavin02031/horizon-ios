@@ -18,7 +18,7 @@ targets:
           - Info.plist
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.gavin02031.horizonios
+        PRODUCT_BUNDLE_IDENTIFIER: com.gavin02031.horizonios.swiftui
         INFOPLIST_FILE: SwiftUI/Info.plist
         GENERATE_INFOPLIST_FILE: "NO"
         SWIFT_OBJC_BRIDGING_HEADER: SwiftUI/HorizonBridge.h

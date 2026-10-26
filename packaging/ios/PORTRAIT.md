@@ -27,3 +27,16 @@ UIWindowScene.requestGeometryUpdate, then returns to portrait.
   screen portrait-to-landscape Metal diagnostic and rotation back.
 - On iOS some system orientation-lock policies may reject the scene geometry
   request; do not assume a successful compilation proves rotation.
+
+## Install/build identification
+The signed or unsigned IPA from this branch is labelled **Horizon iOS
+0.4.0**, bundle `com.gavin02031.horizonios.swiftui`, build channel
+`portrait-metal-test`. It is distinct from the older gray-screen Rust-only
+IPA (`com.gavin02031.horizonios`). GitHub Actions verifies the bundle ID,
+SwiftUI dynamic framework link, build channel, version and ARM64 architecture
+before publishing the artifact.
+
+Because the new SwiftUI bundle ID uses a **different sandbox**, resource files
+imported into the old Rust-only app do not migrate automatically. Import your
+prepared resources again from Files; do not delete the old app until you have
+copied any data you want to preserve. No passwords/tokens are imported.
