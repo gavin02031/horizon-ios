@@ -494,20 +494,20 @@ private struct PixelHorizonBanner: View {
                     Color(red: 0.94, green: 0.43, blue: 0.36),
                 ], startPoint: .top, endPoint: .bottom)
                 Canvas { context, size in
-                    let step = 13.0
+                    let step: CGFloat = 13
                     let count = Int(ceil(size.width / step))
                     let sunRect = CGRect(x: size.width * 0.80,
                         y: size.height * 0.19, width: 37, height: 37)
                     context.fill(Path(sunRect), with: .color(
                         Color(red: 1.0, green: 0.85, blue: 0.46)))
                     for column in 0..<count {
-                        let x = Double(column) * step
-                        let wave = sin(Double(column) * 0.41) * 17
-                        let distant = size.height * 0.58 + wave
+                        let x = CGFloat(column) * step
+                        let wave: CGFloat = CGFloat(sin(Double(column) * 0.41)) * 17
+                        let distant: CGFloat = size.height * 0.58 + wave
                         context.fill(Path(CGRect(x: x, y: distant,
                                                  width: step + 1, height: size.height - distant)),
                                      with: .color(Color(red: 0.38, green: 0.18, blue: 0.49)))
-                        let ridge = size.height * 0.78 + sin(Double(column) * 0.52) * 26
+                        let ridge: CGFloat = size.height * 0.78 + CGFloat(sin(Double(column) * 0.52)) * 26
                         context.fill(Path(CGRect(x: x, y: ridge,
                                                  width: step + 1, height: size.height - ridge)),
                                      with: .color(Color(red: 0.17, green: 0.10, blue: 0.29)))
