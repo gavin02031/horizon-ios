@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - ios/swiftui-launcher
+      - ios/metal-input-foundation
 
 permissions:
   contents: read

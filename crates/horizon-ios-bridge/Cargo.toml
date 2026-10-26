@@ -12,6 +12,9 @@ crate-type = ["staticlib"]
 [dependencies]
 horizon-client = { path = "../horizon-client", default-features = false }
 horizon-core = { path = "../horizon-core" }
+wgpu = { version = "30.0.1", default-features = false, features = ["std", "parking_lot", "metal", "wgsl", "naga-ir"] }
+raw-window-handle = "0.6"
+pollster = "0.4"
 
 [lints]
 workspace = true

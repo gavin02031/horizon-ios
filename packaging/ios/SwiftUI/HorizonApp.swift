@@ -128,6 +128,7 @@ private final class HorizonModel: ObservableObject {
 private struct LauncherView: View {
     @StateObject private var model = HorizonModel()
     @State private var showFileImporter = false
+    @State private var showMetalDiagnostic = false
 
     private let background = Color(red: 0.055, green: 0.068, blue: 0.115)
     private let panel = Color(red: 0.105, green: 0.126, blue: 0.205)
@@ -155,6 +156,9 @@ private struct LauncherView: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 14)
             }
+        }
+        .fullScreenCover(isPresented: $showMetalDiagnostic) {
+            GameDiagnosticScreen()
         }
         .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.folder],
                       allowsMultipleSelection: false) { result in
@@ -247,11 +251,13 @@ private struct LauncherView: View {
                     .background(.white.opacity(0.09), in: Capsule())
             }
             HStack(spacing: 12) {
-                actionCard("Singleplayer", "Your worlds, locally.", "square.stack.3d.up.fill", accent: .cyan)
+                Button { showMetalDiagnostic = true } label: {
+                    actionCard("Test Metal view", "Full-screen native GPU + controls.", "play.rectangle.fill", accent: .cyan)
+                }.buttonStyle(.plain)
                 actionCard("Multiplayer", "Servers and friends.", "person.2.fill", accent: .purple)
             }
             resourceCard
-            Text("Gameplay is not connected to SwiftUI yet. This build verifies the native launcher and Rust bridge; it does not claim to play worlds.")
+            Text("The Metal test verifies Rust GPU presentation and iPhone input. Minecraft world simulation/rendering still needs extraction from Horizon’s winit game loop.")
                 .font(.system(size: 11))
                 .foregroundStyle(.white.opacity(0.55))
         }
@@ -265,7 +271,8 @@ private struct LauncherView: View {
             Spacer(minLength: 0)
             Text(title).font(.system(size: 18, weight: .bold, design: .rounded))
             Text(subtitle).font(.system(size: 11)).foregroundStyle(.white.opacity(0.58))
-            Label("Engine integration pending", systemImage: "lock.fill")
+            Label(title == "Test Metal view" ? "GPU input diagnostic" : "Engine integration pending",
+                  systemImage: title == "Test Metal view" ? "cpu" : "lock.fill")
                 .font(.system(size: 10))
                 .foregroundStyle(.white.opacity(0.45))
         }

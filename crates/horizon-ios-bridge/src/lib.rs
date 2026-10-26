@@ -40,3 +40,6 @@ pub extern "C" fn horizon_ios_create_documents_directory() -> bool {
     let Some(home) = env::var_os("HOME") else { return false };
     std::fs::create_dir_all(PathBuf::from(home).join("Documents").join("Horizon")).is_ok()
 }
+
+#[cfg(target_os = "ios")]
+mod native_metal;
