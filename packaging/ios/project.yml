@@ -26,7 +26,7 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         SUPPORTS_MACCATALYST: "NO"
         LIBRARY_SEARCH_PATHS: "$(inherited) $(PROJECT_DIR)/../../target/aarch64-apple-ios/release"
-        OTHER_LDFLAGS: "$(inherited) -lc++ -lresolv -framework Metal -framework QuartzCore -framework Security -framework SystemConfiguration -framework CoreGraphics -framework CoreFoundation -framework Foundation -framework UIKit"
+        OTHER_LDFLAGS: "$(inherited) -lc++ -lresolv -framework Metal -framework QuartzCore -framework Security -framework SystemConfiguration -framework CoreGraphics -framework CoreFoundation -framework Foundation -framework UIKit -framework GameController -framework MetalKit"
     dependencies:
       - framework: ../../target/aarch64-apple-ios/release/libhorizon_ios_bridge.a
         embed: false
