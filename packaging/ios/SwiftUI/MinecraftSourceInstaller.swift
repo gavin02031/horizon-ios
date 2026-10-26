@@ -1,5 +1,6 @@
 import Foundation
 import CryptoKit
+import Combine
 
 /// Downloads *unmodified* Minecraft Java Edition 26.3 source files directly
 /// from official Mojang endpoints. Horizon's gameplay runs as native Rust:
